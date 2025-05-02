@@ -66,19 +66,13 @@ def create_embedding_retriever(
             cosine_similarity(query_embedding, doc_emb) for doc_emb in doc_embeddings
         ]
 
-        if return_top_k == 1:
-            best_idx = np.argmax(similarities)
-            # Generate a simple doc_id based on index
-            doc_id = f"doc_{best_idx}"
-            return documents[best_idx], float(similarities[best_idx]), doc_id
-        else:
-            # Get indices of top_k highest similarities
-            top_indices = np.argsort(similarities)[-return_top_k:][::-1]
+        # Get indices of top_k highest similarities
+        top_indices = np.argsort(similarities)[-return_top_k:][::-1]
 
-            # Return list of (document, similarity, doc_id) tuples
-            return [
-                (documents[idx], float(similarities[idx]), f"doc_{idx}")
-                for idx in top_indices
-            ]
+        # Return list of (document, similarity, doc_id) tuples
+        return [
+            (documents[idx], float(similarities[idx]), f"doc_{idx}")
+            for idx in top_indices
+        ]
 
     return retriever

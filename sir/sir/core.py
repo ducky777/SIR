@@ -78,28 +78,31 @@ class SIR:
         retrieved_results_by_hop = []
         hop_results = []
         current_query = query
-        # Track document IDs that have already been retrieved
-        seen_doc_ids: Set[str] = set()
+        # Track document IDs that have been added to context
+        context_doc_ids: Set[str] = set()
 
         for hop in range(self.max_hops):
             start_time = time.time()
-
             # Get results from retrieval function
             try:
                 raw_results = self.retrieval_fn(current_query)
                 elapsed = time.time() - start_time
-
                 # Process the retrieval results (might be single item or list)
-                processed_results = self._process_retrieval_results(raw_results, top_k)
-
-                # Filter out documents we've already seen using doc_ids
+                if not isinstance(raw_results, list):
+                    raw_results = [raw_results]  # Convert single result to list
+                processed_results = self._process_retrieval_results(raw_results)
+                # Filter out documents that are already in context
                 new_results = []
                 for result in processed_results:
-                    if result.doc_id not in seen_doc_ids:
+                    if result.doc_id not in context_doc_ids:
                         new_results.append(result)
-                        seen_doc_ids.add(result.doc_id)
 
-                processed_results = new_results
+                # Take top_k from the remaining results
+                processed_results = new_results[:top_k]
+
+                # Add these documents to context
+                for result in processed_results:
+                    context_doc_ids.add(result.doc_id)
 
             except Exception as e:
                 self.logger.error(f"Error in retrieval function: {str(e)}")
@@ -161,7 +164,6 @@ class SIR:
                     for hop_results in retrieved_results_by_hop
                     for r in hop_results
                 ]
-
                 current_query = self.reformulation_fn(query, all_docs)
                 if not current_query:
                     raise ValueError("Reformulation function returned empty query")
@@ -185,9 +187,9 @@ class SIR:
             # Handle single result
             processed_results.append(self._process_single_result(results))
 
-        # Sort by similarity (descending) and limit to top_k
+        # Sort by similarity (descending)
         processed_results.sort(key=lambda x: x.similarity, reverse=True)
-        return processed_results[:top_k]
+        return processed_results
 
     def _process_single_result(self, result: Any) -> RetrievalResult:
         """Convert a single result to a standardized RetrievalResult"""
@@ -227,7 +229,18 @@ class SIR:
         if not retrieved_docs:
             return original_query
 
-        context = "\n".join([f"{i + 1}. {doc}" for i, doc in enumerate(retrieved_docs)])
+        # Deduplicate documents while preserving order
+        seen = set()
+        unique_docs = []
+        for doc in retrieved_docs:
+            if doc not in seen:
+                seen.add(doc)
+                unique_docs.append(doc)
+
+        # Extract key information from retrieved docs
+        context = "\n".join([f"{i + 1}. {doc}" for i, doc in enumerate(unique_docs)])
+
+        # Otherwise, keep original query with context
         return f"{original_query}\n\nContext:\n{context}"
 
     def _setup_default_logger(self) -> logging.Logger:
