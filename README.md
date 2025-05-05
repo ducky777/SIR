@@ -9,8 +9,6 @@ SIR (Self-Iterating Retriever) is a lightweight, cost-effective system for multi
 python>=3.10
 
 ## Installation
-`pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128`
-
 `pip install -r requirements.txt`
 
 ## 🤖 Our Specialized Lightweight Model
