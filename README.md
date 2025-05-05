@@ -25,6 +25,12 @@ The core advantage of SIR is our specialized, compact model specifically optimiz
 ## Quick Start
 `python demo.py`
 
+## Input Format
+```python
+context = "".join(f"\n{j + 1}. {s}" for j, s in enumerate(memory_documents))
+query_with_context = f"Query: {query}\n\nContext:\n{context}"
+```
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
